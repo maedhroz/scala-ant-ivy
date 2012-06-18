@@ -1,0 +1,72 @@
+<project name="${project_name}" default="build" xmlns:ivy="antlib:org.apache.ivy.ant">
+	<property file="build.properties" />
+
+	<target name="init">
+		<property environment="env" />
+
+		<fail message="Missing SCALA_HOME variable in OS environment">
+			<condition>
+				<isset property="${env.SCALA_HOME}" />
+			</condition>
+		</fail>
+
+		<taskdef resource="scala/tools/ant/antlib.xml">
+			<classpath>
+				<pathelement location="${env.SCALA_HOME}/lib/scala-compiler.jar" />
+				<pathelement location="${env.SCALA_HOME}/lib/scala-library.jar" />
+			</classpath>
+		</taskdef>
+	</target>
+
+	<target name="build" depends="package, write_version">
+		<mkdir dir="${dist_path}/bin" />
+
+		<copy overwrite="yes" todir="${dist_path}/bin">
+			<fileset dir="${bin_path}">
+				<include name="*.sh" />
+			</fileset>
+		</copy>
+
+		<chmod dir="${dist_path}/bin" perm="755" includes="**/*.sh" />
+
+		<mkdir dir="${dist_path}/lib" />
+
+		<copy todir="${dist_path}/lib">
+			<fileset dir="${lib_path}" />
+		</copy>		
+	</target>
+
+	<target name="write_version">
+		<mkdir dir="${dist_path}" />
+		<echo file="${dist_path}/version" append="false">${version}</echo>
+	</target>
+
+	<target name="package" depends="compile">
+		<mkdir dir="${dist_path}" />
+		<jar compress="true" keepcompression="true" destfile="${dist_path}/${project_name}.jar" basedir="${out_path}/src" />
+	</target>
+
+	<target name="compile" depends="resolve, init">
+		<path id="project.classpath">
+			<fileset dir="${lib_path}">
+				<include name="**/*.jar" />
+			</fileset>
+		</path>
+
+		<mkdir dir="${out_path}/src" />
+		<scalac srcdir="${src_path}" destDir="${out_path}/src" classpathref="project.classpath" />
+	</target>
+
+	<target name="resolve">
+		<ivy:settings file="ivy-settings.xml" />
+		<ivy:retrieve />
+	</target>
+
+	<target name="clean" depends="init">
+		<delete dir="${out_path}" />
+		<delete dir="${dist_path}" />
+		<delete includeemptydirs="true">
+			<fileset dir="${lib_path}" includes="**/*" />
+		</delete>
+	</target>
+</project>
